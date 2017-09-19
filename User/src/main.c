@@ -56,7 +56,7 @@ char str[80] = {0};
   */
 int main(void)
 {
-//SystemCoreClockUpdate();
+  SystemCoreClockUpdate();
 
   LCD_Init();
   LCD_LayerInit();
@@ -72,7 +72,7 @@ int main(void)
 
   LCD_DisplayStringLine(LCD_LINE_3, (uint8_t *)" The BADEMBED generation ");
 
-//SysTick_Config(SystemCoreClock / 100);
+  SysTick_Config(SystemCoreClock / 100);
 
   /* Infinite loop */
   while (1)
@@ -89,7 +89,7 @@ void OnSysTick(void)
 {
 	volatile static int i = 0;
 
-  sprintf(str, "test %d", i);
+  sprintf(str, " test %d", i);
 	i++;
   LCD_DisplayStringLine(LCD_LINE_5, (uint8_t *)str);
 }

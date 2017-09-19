@@ -32,6 +32,11 @@ CFLAGS += -DSTM32F429_439xx
 CFLAGS += -DVECT_TAB_FLASH
 CFLAGS += -DUSE_STDPERIPH_DRIVER
 
+LDFLAGS += -mcpu=cortex-m3
+LDFLAGS += -mlittle-endian
+LDFLAGS += -mthumb
+LDFLAGS += -Wl,--gc-section
+
 LDFLAGS += $(LDSCRIPT) --specs=nano.specs --specs=nosys.specs
 
 ##############################################################
