@@ -46,9 +46,10 @@
 #define FAIL    0
 #define OLD_ADDR 0x08000000
 #define NEW_ADDR 0x08020000
+#define SIZE_IRQ_TABLE 106
 
 // increment MAGIC for second test
-#define MAGIC    1
+#define MAGIC    11
 
 /* Base address of the Flash sectors */
 #define ADDR_FLASH_SECTOR_0     ((uint32_t)0x08000000) /* Base @ of Sector 0, 16 Kbytes */
@@ -64,16 +65,12 @@
 #define ADDR_FLASH_SECTOR_10    ((uint32_t)0x080C0000) /* Base @ of Sector 10, 128 Kbytes */
 #define ADDR_FLASH_SECTOR_11    ((uint32_t)0x080E0000) /* Base @ of Sector 11, 128 Kbytes */
 
-
-/* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
-
 // 0xffffffff - erase value
 int const magic __attribute__((__section__(".mysection"))) = 0xffffffff;
 void (*p_update)(void);
 int *p_magic = (int *)0x080201ac;
 
-/* Private function prototypes -----------------------------------------------*/
+char str[80] = {0};
 
 uint32_t GetSector(uint32_t Address);
 void user_LCD_init(void);
@@ -82,6 +79,8 @@ void debug_out(char *str);
 void first_update(void);
 void second_update(void);
 int erase_system(void);
+void shift_irq_handlers(void);
+char* simple_itoa(int i, char *b);
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -135,16 +134,23 @@ void main(void)
 
     def += tmp;
 
+    /*
+    // test interrupt in RAM
+    __disable_irq();
+    NVIC_SetVectorTable(NVIC_VectTab_RAM, 0);
+    SysTick_Config(SystemCoreClock / 100);
+    __enable_irq();
+    while(1);
+    */
+
     __disable_irq();
     user_LCD_init();
 
     if(*p_magic != MAGIC) {
         debug_out("first_update");
         copy_code();
-        SCB->VTOR = NEW_ADDR;
         p_update = (&first_update - OLD_ADDR) + NEW_ADDR;
     } else {
-        SCB->VTOR = NEW_ADDR;
         debug_out("second_update");
         //p_update = NEW_ADDR + Reset_Handler;
         p_update = (&second_update - OLD_ADDR) + NEW_ADDR;
@@ -179,9 +185,26 @@ void second_update(void)
     erase_system();
     debug_out("first partition was erased");
 
+    __disable_irq();
+    shift_irq_handlers();
+    NVIC_SetVectorTable(NVIC_VectTab_RAM, 0);
+    SystemCoreClockUpdate();
+    SysTick_Config(SystemCoreClock / 100);
+    __enable_irq();
+
     LCD_DisplayStringLine(LCD_LINE_8,
                           (uint8_t *) "IT's LIVE");
     while(1);
+}
+
+void shift_irq_handlers(void)
+{
+    // shift pointers to interrupt handlers to new FLASH partition
+    uint32_t *p_irqtable = (uint32_t *)(NVIC_VectTab_RAM + 4);
+    for(int i = 0; i < SIZE_IRQ_TABLE; i++) {
+        *p_irqtable += (uint32_t)(NEW_ADDR - OLD_ADDR);
+        p_irqtable++;
+    }
 }
 
 int erase_system(void)
@@ -251,8 +274,6 @@ int copy_code(void)
         new_code_addr += 4;
     }
 */
-
-    SCB->VTOR = NEW_ADDR;
 
     debug_out("SUCCESS");
     return SUCCESS;
@@ -336,6 +357,41 @@ uint32_t GetSector(uint32_t Address)
     }
 
     return sector;
+}
+
+void OnSysTick(void)
+{
+    static int i = 0;
+
+    i++;
+    simple_itoa(i, str);
+
+    LCD_DisplayStringLine(LCD_LINE_1, (uint8_t *)str);
+}
+
+char* simple_itoa(int i, char *b)
+{
+    char const digit[] = "0123456789";
+    char* p = b;
+
+    if(i<0) {
+        *p++ = '-';
+        i *= -1;
+    }
+
+    int shifter = i;
+    do { //Move to where representation ends
+        ++p;
+        shifter = shifter/10;
+    } while(shifter);
+
+    *p = '\0';
+    do { //Move back, inserting digits as u go
+        *--p = digit[i%10];
+        i = i/10;
+    } while(i);
+
+    return b;
 }
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

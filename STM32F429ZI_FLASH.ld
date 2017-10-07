@@ -49,13 +49,20 @@ MEMORY
 /* Define output sections */
 SECTIONS
 {
+
+  _si_isr_vector = LOADADDR(.isr_vector);
+
   /* The startup code goes first into FLASH */
   .isr_vector :
   {
     . = ALIGN(4);
+    _s_isr_vector = .;
+
     KEEP(*(.isr_vector)) /* Startup code */
+
     . = ALIGN(4);
-  } >FLASH
+    _e_isr_vector = .;
+  } >RAM AT> FLASH
 
   .mysection :
   {
