@@ -28,6 +28,12 @@ CFLAGS += -Wall
 # Optimizations
 CFLAGS += -O0
 
+# PIC
+CFLAGS += -fPIC
+CFLAGS += -mno-pic-data-is-text-relative
+#CFLAGS += -msingle-pic-base
+#CFLAGS += -mpic-register=r10
+
 CFLAGS += -DSTM32F429_439xx
 CFLAGS += -DVECT_TAB_FLASH
 CFLAGS += -DUSE_STDPERIPH_DRIVER

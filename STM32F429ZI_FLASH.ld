@@ -57,6 +57,15 @@ SECTIONS
     . = ALIGN(4);
   } >FLASH
 
+  .mysection :
+  {
+    . = ALIGN(4);
+    __mysection_start__ = .;
+    KEEP(*(.mysection*))
+    __mysection_end__ = .;
+    . = ALIGN(4);
+  } >FLASH
+
   /* The program code and other data goes into FLASH */
   .text :
   {
@@ -65,6 +74,11 @@ SECTIONS
     *(.text*)          /* .text* sections (code) */
     *(.glue_7)         /* glue arm to thumb code */
     *(.glue_7t)        /* glue thumb to arm code */
+
+    _sgot = .;
+    *(.got)
+    _egot = .;
+
     *(.eh_frame)
 
     KEEP (*(.init))
@@ -74,14 +88,21 @@ SECTIONS
     _etext = .;        /* define a global symbols at end of code */
   } >FLASH
 
-  /* Constant data goes into FLASH */
+  /* used by the startup to initialize data */
+  _sirodata = LOADADDR(.rodata);
+
+  /* Constant data goes into RAM */
   .rodata :
   {
     . = ALIGN(4);
+    _srodata = .;
+
     *(.rodata)         /* .rodata sections (constants, strings, etc.) */
     *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
+
     . = ALIGN(4);
-  } >FLASH
+    _erodata = .;
+  } >RAM AT> FLASH
 
   .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
   .ARM : {
